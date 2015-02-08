@@ -114,16 +114,16 @@ exports.mountAddon = mountAddon;
 const reloadAddon = {
   name: "addon reload",
   description: "Reload add-on",
-  params: [{name: "addon",
-            type: "addon",
-            description: "Add-on to reloaded"}],
-  exec: ({addon}) => {
-    return disable(addon.id).then(_ => {
+  params: [{name: "addon_id",
+            type: "string",
+            description: "Add-on to reloaded by addon id"}],
+  exec: ({addon_id}) => {
+    return disable(addon_id).then(_ => {
       Cc["@mozilla.org/observer-service;1"].
         getService(Ci.nsIObserverService).
         notifyObservers({}, "startupcache-invalidate", null);
 
-      return enable(addon.id);
+      return enable(addon_id);
     });
   }
 };
@@ -132,15 +132,15 @@ exports.reloadAddon = reloadAddon;
 const exportAddon = {
   name: "addon export",
   description: "Export an add-on as an xpi",
-  params: [{name: "addon",
-            type: "addon",
+  params: [{name: "addon_id",
+            type: "string",
             description: "Mounted add-on to export"},
            {name: "path",
             type: "ExistingDirectoryPath",
             description: "Path to export add-on to"}],
   exec({addon, path: targetPath}) {
     return Task.spawn(function*() {
-      const mountURI = get(`extensions.${addon.id}.mountURI`)
+      const mountURI = get(`extensions.${addon_id}.mountURI`)
       if (mountURI) {
         const root = uriToPath(mountURI);
         const manifestData = yield read(path.join(root, "package.json"));
