@@ -15,6 +15,35 @@ const { set, get } = require("sdk/preferences/service");
 
 const path = require("sdk/fs/path");
 
+const { AddonManager } = require("resource://gre/modules/AddonManager.jsm");
+
+function getAllAddons() {
+    return new Promise((resolve, reject) => {
+        AddonManager.getAllAddons(resolve);
+    })
+}
+
+const Addon = {
+    name: "Addon",
+    parent: "string",
+    parse(arg) {
+        let {text:input} = arg;
+
+        return Task.spawn(function*() {
+            let addons = yield getAllAddons();
+            let predictions = addons.map((addon) => {
+                if (addon.id.match(input)) {
+                    return { name: addon.id, incomplete: addon.id !== input }
+                }
+            });
+
+            return new Conversion(input, arg, Status.VALID, "", predictions);
+        });
+    }
+};
+
+exports.Addon = Addon;
+
 const ExistingDirectoryPath = {
   name: "ExistingDirectoryPath",
   parent: "string",
@@ -115,7 +144,7 @@ const reloadAddon = {
   name: "addon reload",
   description: "Reload add-on",
   params: [{name: "addon_id",
-            type: "string",
+            type: "Addon",
             description: "Add-on to reloaded by addon id"}],
   exec: ({addon_id}) => {
     return disable(addon_id).then(_ => {
@@ -133,12 +162,12 @@ const exportAddon = {
   name: "addon export",
   description: "Export an add-on as an xpi",
   params: [{name: "addon_id",
-            type: "string",
+            type: "Addon",
             description: "Mounted add-on to export"},
            {name: "path",
             type: "ExistingDirectoryPath",
             description: "Path to export add-on to"}],
-  exec({addon, path: targetPath}) {
+  exec({addon_id, path: targetPath}) {
     return Task.spawn(function*() {
       const mountURI = get(`extensions.${addon_id}.mountURI`)
       if (mountURI) {
